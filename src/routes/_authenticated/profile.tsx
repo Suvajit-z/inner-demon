@@ -2,8 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { useReminders } from "@/hooks/use-reminders";
 import { supabase } from "@/integrations/supabase/client";
-import { LogOut, User as UserIcon, Calendar } from "lucide-react";
+import { Bell, BellOff, LogOut, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/profile")({
