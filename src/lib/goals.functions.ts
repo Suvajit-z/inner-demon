@@ -96,7 +96,7 @@ function normalizeExtractedGoals(raw: unknown, sourceText: string): ExtractedGoa
         estimated_minutes: clampNumber(subtaskData.estimated_minutes, 10, 240, 30),
         priority: clampNumber(subtaskData.priority, 1, 5, Math.min(5, subtaskIndex + 1)),
       };
-    }));
+    });
 
     return {
       title,
