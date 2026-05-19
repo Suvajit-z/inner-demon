@@ -44,8 +44,8 @@
 :root {
   --radius: 0.75rem;
 
-  --background: oklch(0.13 0 0);            /* near-black #0A0A0A */
-  --foreground: oklch(0.96 0.01 90);        /* warm white */
+  --background: oklch(0.13 0 0); /* near-black #0A0A0A */
+  --foreground: oklch(0.96 0.01 90); /* warm white */
 
   --card: oklch(0.17 0 0);
   --card-foreground: oklch(0.96 0.01 90);
@@ -53,7 +53,7 @@
   --popover: oklch(0.17 0 0);
   --popover-foreground: oklch(0.96 0.01 90);
 
-  --primary: oklch(0.78 0.13 85);           /* gold #C9A84C */
+  --primary: oklch(0.78 0.13 85); /* gold #C9A84C */
   --primary-foreground: oklch(0.18 0 0);
   --primary-glow: oklch(0.86 0.14 88);
 
@@ -63,7 +63,7 @@
   --muted: oklch(0.22 0 0);
   --muted-foreground: oklch(0.68 0.02 80);
 
-  --accent: oklch(0.30 0.06 80);
+  --accent: oklch(0.3 0.06 80);
   --accent-foreground: oklch(0.96 0.01 90);
 
   --destructive: oklch(0.62 0.22 25);
@@ -84,7 +84,21 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
-  html, body { background-color: var(--color-background); color: var(--color-foreground); }
-  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  * {
+    border-color: var(--color-border);
+  }
+  html,
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+  }
+  body {
+    font-family:
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+  }
 }

@@ -45,13 +45,25 @@ function LoginPage() {
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" required autoComplete="email"
-              value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required autoComplete="current-password"
-              value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              id="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           <Button type="submit" className="w-full h-11 font-semibold" disabled={busy}>
             {busy ? "Entering..." : "Sign in"}
@@ -60,7 +72,9 @@ function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           New here?{" "}
-          <Link to="/signup" className="text-primary hover:underline">Create an account</Link>
+          <Link to="/signup" className="text-primary hover:underline">
+            Create an account
+          </Link>
         </p>
       </div>
     </main>

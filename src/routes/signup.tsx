@@ -53,23 +53,43 @@ function SignupPage() {
             <Flame className="h-7 w-7 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Awaken the demon</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Start your free trial. No card required.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Start your free trial. No card required.
+          </p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="full_name">Full name</Label>
-            <Input id="full_name" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <Input
+              id="full_name"
+              required
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" required autoComplete="email"
-              value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" required minLength={6} autoComplete="new-password"
-              value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input
+              id="password"
+              type="password"
+              required
+              minLength={6}
+              autoComplete="new-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
           <Button type="submit" className="w-full h-11 font-semibold" disabled={busy}>
             {busy ? "Awakening..." : "Create account"}
@@ -78,7 +98,9 @@ function SignupPage() {
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already initiated?{" "}
-          <Link to="/login" className="text-primary hover:underline">Sign in</Link>
+          <Link to="/login" className="text-primary hover:underline">
+            Sign in
+          </Link>
         </p>
       </div>
     </main>
