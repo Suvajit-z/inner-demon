@@ -14,7 +14,172 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      daily_tasks: {
+        Row: {
+          calendar_event_id: string | null
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          date: string
+          estimated_minutes: number
+          id: string
+          slot: number
+          subtask_id: string | null
+          task_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          calendar_event_id?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          date: string
+          estimated_minutes?: number
+          id?: string
+          slot: number
+          subtask_id?: string | null
+          task_type?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          calendar_event_id?: string | null
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          date?: string
+          estimated_minutes?: number
+          id?: string
+          slot?: number
+          subtask_id?: string | null
+          task_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_tasks_subtask_id_fkey"
+            columns: ["subtask_id"]
+            isOneToOne: false
+            referencedRelation: "subtasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      goals: {
+        Row: {
+          created_at: string
+          deadline: string | null
+          id: string
+          priority: number
+          raw_text: string | null
+          source: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          priority?: number
+          raw_text?: string | null
+          source: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          deadline?: string | null
+          id?: string
+          priority?: number
+          raw_text?: string | null
+          source?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          calendar_enabled: boolean
+          created_at: string
+          email: string | null
+          full_name: string | null
+          google_access_token: string | null
+          google_refresh_token: string | null
+          google_token_expires_at: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          calendar_enabled?: boolean
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          calendar_enabled?: boolean
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          google_access_token?: string | null
+          google_refresh_token?: string | null
+          google_token_expires_at?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subtasks: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          estimated_minutes: number
+          goal_id: string
+          id: string
+          priority: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          estimated_minutes?: number
+          goal_id: string
+          id?: string
+          priority?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          estimated_minutes?: number
+          goal_id?: string
+          id?: string
+          priority?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subtasks_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
