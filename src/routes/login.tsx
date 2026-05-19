@@ -25,11 +25,10 @@ function LoginPage() {
       setBusy(false);
       return toast.error(error.message);
     }
-    // Ensure session is committed to storage before navigating
     await supabase.auth.getSession();
+    setBusy(false);
     toast.success("Welcome back.");
-    // Hard navigation guarantees the next page sees the fresh session
-    window.location.assign("/dashboard");
+    navigate({ to: "/dashboard" });
   }
 
   return (

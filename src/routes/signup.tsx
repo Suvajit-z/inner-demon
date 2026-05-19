@@ -35,8 +35,9 @@ function SignupPage() {
     }
     if (data.session) {
       await supabase.auth.getSession();
+      setBusy(false);
       toast.success("Account created. Welcome.");
-      window.location.assign("/dashboard");
+      navigate({ to: "/dashboard" });
     } else {
       setBusy(false);
       toast.success("Check your email to verify your account.");
