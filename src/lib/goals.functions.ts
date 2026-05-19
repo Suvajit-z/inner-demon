@@ -68,15 +68,6 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
         estimated_minutes: Math.max(10, Math.min(240, Math.round(s.estimated_minutes))),
         priority: Math.max(1, Math.min(5, Math.round(s.priority))),
       }));
-      if (goalErr || !goalRow) throw new Error(goalErr?.message ?? "Failed to save goal");
-
-      const rows = g.subtasks.map((s) => ({
-        goal_id: goalRow.id,
-        user_id: userId,
-        title: s.title,
-        estimated_minutes: s.estimated_minutes,
-        priority: s.priority,
-      }));
       const { error: subErr } = await supabase.from("subtasks").insert(rows);
       if (subErr) throw new Error(subErr.message);
       totalSubtasks += rows.length;
