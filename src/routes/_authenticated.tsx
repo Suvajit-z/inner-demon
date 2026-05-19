@@ -5,9 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
-    // getUser awaits session restore from storage (vs getSession which can race)
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) throw redirect({ to: "/login" });
+    // getSession reads from localStorage — no network race
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login" });
     if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("__chunk_reloaded");
   },
   component: AuthedLayout,
