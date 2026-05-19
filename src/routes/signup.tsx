@@ -29,12 +29,16 @@ function SignupPage() {
         data: { full_name: fullName },
       },
     });
-    setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setBusy(false);
+      return toast.error(error.message);
+    }
     if (data.session) {
+      await supabase.auth.getSession();
       toast.success("Account created. Welcome.");
-      navigate({ to: "/dashboard" });
+      window.location.assign("/dashboard");
     } else {
+      setBusy(false);
       toast.success("Check your email to verify your account.");
       navigate({ to: "/login" });
     }
