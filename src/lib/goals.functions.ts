@@ -59,7 +59,7 @@ function extractJsonFromResponse(response: string): unknown {
     return JSON.parse(cleaned);
   } catch {
     return JSON.parse(
-      cleaned
+      stripControlCharacters(cleaned)
         .replace(/,\s*}/g, "}")
         .replace(/,\s*]/g, "]")
         .replace(/[\x7F]/g, ""),
@@ -219,20 +219,22 @@ function inferTaskType(title: string): DailyPick["task_type"] {
 
 function normalizeDailyPicks(raw: unknown, pool: PoolTask[]): DailyPick[] {
   const byId = new Map(pool.map((task) => [task.id, task]));
-  const rawPicks = Array.isArray((raw as any)?.picks) ? (raw as any).picks : [];
+  const rawPickValue = asObject(raw).picks;
+  const rawPicks: unknown[] = Array.isArray(rawPickValue) ? rawPickValue : [];
   const picks: DailyPick[] = [];
 
   for (const pick of rawPicks) {
-    const source = byId.get(String(pick?.subtask_id ?? ""));
+    const pickData = asObject(pick);
+    const source = byId.get(String(pickData.subtask_id ?? ""));
     if (!source || picks.some((p) => p.subtask_id === source.id)) continue;
-    const candidateType = String(pick?.task_type ?? "");
+    const candidateType = String(pickData.task_type ?? "");
     picks.push({
       subtask_id: source.id,
-      title: cleanTitle(pick?.title, source.title),
+      title: cleanTitle(pickData.title, source.title),
       task_type: TASK_TYPES.includes(candidateType as DailyPick["task_type"])
         ? (candidateType as DailyPick["task_type"])
         : inferTaskType(source.title),
-      estimated_minutes: clampNumber(pick?.estimated_minutes, 10, 240, source.minutes || 30),
+      estimated_minutes: clampNumber(pickData.estimated_minutes, 10, 240, source.minutes || 30),
     });
   }
 
@@ -282,15 +284,19 @@ export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
       return { date, tasks: [], message: "No goals yet. Import goals to generate missions." };
     }
 
-    const poolSummary: PoolTask[] = pool.map((s: any) => ({
-      id: s.id,
-      title: s.title,
-      minutes: s.estimated_minutes,
-      task_priority: s.priority,
-      goal: s.goals?.title,
-      goal_deadline: s.goals?.deadline,
-      goal_priority: s.goals?.priority,
-    }));
+    const poolSummary: PoolTask[] = pool.map((s) => {
+      const row = asObject(s);
+      const goal = asObject(row.goals);
+      return {
+        id: String(row.id),
+        title: cleanTitle(row.title, "Untitled task"),
+        minutes: clampNumber(row.estimated_minutes, 10, 240, 30),
+        task_priority: clampNumber(row.priority, 1, 5, 3),
+        goal: typeof goal.title === "string" ? goal.title : undefined,
+        goal_deadline: typeof goal.deadline === "string" ? goal.deadline : null,
+        goal_priority: clampNumber(goal.priority, 1, 5, 3),
+      };
+    });
 
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("AI gateway not configured");
