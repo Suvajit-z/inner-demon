@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createLovableAiGatewayProvider } from "./ai-gateway";
 
@@ -9,18 +9,121 @@ const ImportInput = z.object({
   source: z.enum(["pdf", "paste"]),
 });
 
-const ExtractionSchema = z.object({
-  goals: z.array(z.object({
-    title: z.string().describe("Goal title, 3-200 chars"),
-    deadline: z.string().describe("ISO date YYYY-MM-DD, or empty string if none"),
-    priority: z.number().describe("1=highest, 5=lowest"),
-    subtasks: z.array(z.object({
-      title: z.string().describe("Subtask title"),
-      estimated_minutes: z.number().describe("Estimated minutes 10-240"),
-      priority: z.number().describe("1=highest, 5=lowest"),
-    })).describe("1-20 subtasks"),
-  })).describe("1-15 goals"),
-});
+type ExtractedGoal = {
+  title: string;
+  deadline: string;
+  priority: number;
+  subtasks: Array<{ title: string; estimated_minutes: number; priority: number }>;
+};
+
+type JsonMap = Record<string, unknown>;
+
+const TASK_TYPES = ["study", "workout", "read", "practice", "review", "build", "other"] as const;
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number) {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, Math.round(n))) : fallback;
+}
+
+function cleanTitle(value: unknown, fallback: string) {
+  const title = String(value ?? "")
+    .replace(/^[-*•\d.)\s]+/, "")
+    .trim();
+  return title.length >= 3 ? title.slice(0, 200) : fallback;
+}
+
+function asObject(value: unknown): JsonMap {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonMap) : {};
+}
+
+function stripControlCharacters(value: string) {
+  return Array.from(value)
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code === 9 || code === 10 || code === 13 || code >= 32;
+    })
+    .join("");
+}
+
+function extractJsonFromResponse(response: string): unknown {
+  let cleaned = response
+    .replace(/```json\s*/gi, "")
+    .replace(/```/g, "")
+    .trim();
+  const start = cleaned.search(/[[{]/);
+  const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+  if (start === -1 || end === -1 || end <= start) throw new Error("No JSON found in AI response");
+  cleaned = cleaned.slice(start, end + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return JSON.parse(
+      stripControlCharacters(cleaned)
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        .replace(/[\x7F]/g, ""),
+    );
+  }
+}
+
+function fallbackGoalsFromText(text: string): ExtractedGoal[] {
+  const lines = text
+    .split(/\n|\r|;/)
+    .map((line) => cleanTitle(line, ""))
+    .filter((line) => line.length >= 8 && line.length <= 180)
+    .slice(0, 5);
+  const titles = lines.length
+    ? lines
+    : [cleanTitle(text.split(/[.!?]/)[0], "Build a focused personal goal")];
+
+  return titles.map((title) => ({
+    title,
+    deadline: "",
+    priority: 3,
+    subtasks: [
+      `Clarify the next outcome for ${title}`,
+      `Break ${title} into weekly milestones`,
+      `Schedule the first focused work block`,
+      `Review progress and adjust the plan`,
+    ].map((task, index) => ({
+      title: task.slice(0, 200),
+      estimated_minutes: index === 1 ? 45 : 30,
+      priority: index + 1,
+    })),
+  }));
+}
+
+function normalizeExtractedGoals(raw: unknown, sourceText: string): ExtractedGoal[] {
+  const rawGoalValue = asObject(raw).goals;
+  const rawGoals: unknown[] = Array.isArray(rawGoalValue)
+    ? rawGoalValue
+    : Array.isArray(raw)
+      ? raw
+      : [];
+  const goals = rawGoals.slice(0, 15).map((goal, goalIndex: number) => {
+    const goalData = asObject(goal);
+    const title = cleanTitle(goalData.title, `Goal ${goalIndex + 1}`);
+    const rawSubtasks = Array.isArray(goalData.subtasks) ? goalData.subtasks : [];
+    const subtasks = rawSubtasks.slice(0, 20).map((subtask, subtaskIndex: number) => {
+      const subtaskData = asObject(subtask);
+      return {
+        title: cleanTitle(subtaskData.title, `Work on ${title}`),
+        estimated_minutes: clampNumber(subtaskData.estimated_minutes, 10, 240, 30),
+        priority: clampNumber(subtaskData.priority, 1, 5, Math.min(5, subtaskIndex + 1)),
+      };
+    });
+
+    return {
+      title,
+      deadline: typeof goalData.deadline === "string" ? goalData.deadline : "",
+      priority: clampNumber(goalData.priority, 1, 5, 3),
+      subtasks: subtasks.length ? subtasks : fallbackGoalsFromText(title)[0].subtasks,
+    };
+  });
+
+  return goals.length ? goals : fallbackGoalsFromText(sourceText);
+}
 
 export const importGoalsFromText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -33,20 +136,27 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
-    const { object } = await generateObject({
-      model,
-      schema: ExtractionSchema,
-      system:
-        "You analyze goal documents, study plans, and routines. Extract distinct top-level goals. " +
-        "For each goal, break it into 3–15 concrete, actionable sub-tasks the person can execute. " +
-        "Estimate minutes realistically. Priority: 1=urgent/critical, 5=nice-to-have. " +
-        "If a deadline is mentioned, parse it to YYYY-MM-DD; otherwise null.",
-      prompt: `Today is ${new Date().toISOString().slice(0, 10)}.\n\nSource text:\n${data.text}`,
-    });
+    let goals: ExtractedGoal[];
+    try {
+      const { text } = await generateText({
+        model,
+        temperature: 0.2,
+        maxOutputTokens: 4000,
+        system:
+          "You analyze goal documents, study plans, and routines. Return ONLY valid JSON, no markdown. " +
+          'Shape: {"goals":[{"title":string,"deadline":"YYYY-MM-DD or empty string","priority":1-5,"subtasks":[{"title":string,"estimated_minutes":10-240,"priority":1-5}]}]}. ' +
+          "Extract distinct top-level goals and create 3-15 concrete, actionable sub-tasks for each.",
+        prompt: `Today is ${new Date().toISOString().slice(0, 10)}.\n\nSource text:\n${data.text}`,
+      });
+      goals = normalizeExtractedGoals(extractJsonFromResponse(text), data.text);
+    } catch (error) {
+      console.error("Goal import AI extraction failed; using fallback parser", error);
+      goals = fallbackGoalsFromText(data.text);
+    }
 
     // Insert goals + subtasks
     let totalSubtasks = 0;
-    for (const g of object.goals) {
+    for (const g of goals) {
       const { data: goalRow, error: goalErr } = await supabase
         .from("goals")
         .insert({
@@ -73,21 +183,77 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
       totalSubtasks += rows.length;
     }
 
-    return { goalsImported: object.goals.length, subtasksImported: totalSubtasks };
+    return { goalsImported: goals.length, subtasksImported: totalSubtasks };
   });
 
 // ---------------- Daily task generation ----------------
 
 const SelectInput = z.object({ date: z.string().optional() });
 
-const SelectionSchema = z.object({
-  picks: z.array(z.object({
-    subtask_id: z.string().uuid(),
-    title: z.string(),
-    task_type: z.enum(["study", "workout", "read", "practice", "review", "build", "other"]),
-    estimated_minutes: z.number().int().min(10).max(240),
-  })).length(4),
-});
+type PoolTask = {
+  id: string;
+  title: string;
+  minutes: number;
+  task_priority: number;
+  goal?: string;
+  goal_deadline?: string | null;
+  goal_priority?: number;
+};
+type DailyPick = {
+  subtask_id: string;
+  title: string;
+  task_type: (typeof TASK_TYPES)[number];
+  estimated_minutes: number;
+};
+
+function inferTaskType(title: string): DailyPick["task_type"] {
+  const lower = title.toLowerCase();
+  if (/workout|gym|run|exercise|train|cardio|lift/.test(lower)) return "workout";
+  if (/read|book|chapter/.test(lower)) return "read";
+  if (/review|revise|recap|reflect/.test(lower)) return "review";
+  if (/practice|drill|problem|quiz/.test(lower)) return "practice";
+  if (/build|create|write|ship|code|make/.test(lower)) return "build";
+  if (/study|learn|course|lesson|class/.test(lower)) return "study";
+  return "other";
+}
+
+function normalizeDailyPicks(raw: unknown, pool: PoolTask[]): DailyPick[] {
+  const byId = new Map(pool.map((task) => [task.id, task]));
+  const rawPickValue = asObject(raw).picks;
+  const rawPicks: unknown[] = Array.isArray(rawPickValue) ? rawPickValue : [];
+  const picks: DailyPick[] = [];
+
+  for (const pick of rawPicks) {
+    const pickData = asObject(pick);
+    const source = byId.get(String(pickData.subtask_id ?? ""));
+    if (!source || picks.some((p) => p.subtask_id === source.id)) continue;
+    const candidateType = String(pickData.task_type ?? "");
+    picks.push({
+      subtask_id: source.id,
+      title: cleanTitle(pickData.title, source.title),
+      task_type: TASK_TYPES.includes(candidateType as DailyPick["task_type"])
+        ? (candidateType as DailyPick["task_type"])
+        : inferTaskType(source.title),
+      estimated_minutes: clampNumber(pickData.estimated_minutes, 10, 240, source.minutes || 30),
+    });
+  }
+
+  const sortedFallback = [...pool].sort(
+    (a, b) => (a.goal_priority ?? 5) - (b.goal_priority ?? 5) || a.task_priority - b.task_priority,
+  );
+  for (const task of sortedFallback) {
+    if (picks.length >= 4) break;
+    if (picks.some((p) => p.subtask_id === task.id)) continue;
+    picks.push({
+      subtask_id: task.id,
+      title: task.title,
+      task_type: inferTaskType(task.title),
+      estimated_minutes: clampNumber(task.minutes, 10, 240, 30),
+    });
+  }
+
+  return picks.slice(0, 4);
+}
 
 export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -107,7 +273,9 @@ export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
     // Pool of open subtasks with goal context
     const { data: pool } = await supabase
       .from("subtasks")
-      .select("id, title, estimated_minutes, priority, completed, goal_id, goals!inner(title, deadline, priority)")
+      .select(
+        "id, title, estimated_minutes, priority, completed, goal_id, goals!inner(title, deadline, priority)",
+      )
       .eq("user_id", userId)
       .eq("completed", false)
       .limit(80);
@@ -116,33 +284,43 @@ export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
       return { date, tasks: [], message: "No goals yet. Import goals to generate missions." };
     }
 
-    const poolSummary = pool.map((s: any) => ({
-      id: s.id,
-      title: s.title,
-      minutes: s.estimated_minutes,
-      task_priority: s.priority,
-      goal: s.goals?.title,
-      goal_deadline: s.goals?.deadline,
-      goal_priority: s.goals?.priority,
-    }));
+    const poolSummary: PoolTask[] = pool.map((s) => {
+      const row = asObject(s);
+      const goal = asObject(row.goals);
+      return {
+        id: String(row.id),
+        title: cleanTitle(row.title, "Untitled task"),
+        minutes: clampNumber(row.estimated_minutes, 10, 240, 30),
+        task_priority: clampNumber(row.priority, 1, 5, 3),
+        goal: typeof goal.title === "string" ? goal.title : undefined,
+        goal_deadline: typeof goal.deadline === "string" ? goal.deadline : null,
+        goal_priority: clampNumber(goal.priority, 1, 5, 3),
+      };
+    });
 
     const key = process.env.LOVABLE_API_KEY;
     if (!key) throw new Error("AI gateway not configured");
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
-    const { object } = await generateObject({
-      model,
-      schema: SelectionSchema,
-      system:
-        "You pick exactly 4 daily missions from the user's open sub-task pool. " +
-        "Weight by: (1) closest goal deadline first, (2) higher goal priority, (3) higher task priority, " +
-        "(4) variety across goals. Total minutes should fit a day (aim 2–4 hours). " +
-        "Use the provided subtask_id verbatim. Pick task_type that best matches the title.",
-      prompt: `Today: ${date}\n\nOpen subtask pool:\n${JSON.stringify(poolSummary, null, 2)}`,
-    });
+    let picks: DailyPick[];
+    try {
+      const { text } = await generateText({
+        model,
+        temperature: 0.2,
+        maxOutputTokens: 2000,
+        system:
+          'Return ONLY valid JSON, no markdown. Shape: {"picks":[{"subtask_id":string,"title":string,"task_type":"study|workout|read|practice|review|build|other","estimated_minutes":10-240}]}. ' +
+          "Pick exactly 4 daily missions from the user's open sub-task pool. Weight closest deadline, high priority, and variety. Use subtask_id verbatim.",
+        prompt: `Today: ${date}\n\nOpen subtask pool:\n${JSON.stringify(poolSummary, null, 2)}`,
+      });
+      picks = normalizeDailyPicks(extractJsonFromResponse(text), poolSummary);
+    } catch (error) {
+      console.error("Daily mission AI selection failed; using fallback picker", error);
+      picks = normalizeDailyPicks({ picks: [] }, poolSummary);
+    }
 
-    const rows = object.picks.map((p, i) => ({
+    const rows = picks.map((p, i) => ({
       user_id: userId,
       date,
       slot: i + 1,
@@ -206,16 +384,20 @@ export const listGoals = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((g: any) => ({
-      id: g.id,
-      title: g.title,
-      source: g.source,
-      deadline: g.deadline,
-      priority: g.priority,
-      created_at: g.created_at,
-      subtask_total: g.subtasks?.length ?? 0,
-      subtask_done: (g.subtasks ?? []).filter((s: any) => s.completed).length,
-    }));
+    return (data ?? []).map((g) => {
+      const row = asObject(g);
+      const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
+      return {
+        id: String(row.id),
+        title: String(row.title ?? "Untitled goal"),
+        source: String(row.source ?? "paste"),
+        deadline: typeof row.deadline === "string" ? row.deadline : null,
+        priority: clampNumber(row.priority, 1, 5, 3),
+        created_at: String(row.created_at ?? ""),
+        subtask_total: subtasks.length,
+        subtask_done: subtasks.filter((s) => asObject(s).completed === true).length,
+      };
+    });
   });
 
 const DeleteGoalInput = z.object({ id: z.string().uuid() });
