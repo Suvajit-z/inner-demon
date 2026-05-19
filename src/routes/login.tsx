@@ -20,17 +20,15 @@ function LoginPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    console.log("[login] submitting", email);
-    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
-    console.log("[login] signIn result", { error, hasSession: !!signInData?.session, userId: signInData?.user?.id });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       setBusy(false);
       return toast.error(error.message);
     }
-    const { data: sessionData } = await supabase.auth.getSession();
-    console.log("[login] post-sign-in getSession", { hasSession: !!sessionData?.session });
+    await supabase.auth.getSession();
+    setBusy(false);
     toast.success("Welcome back.");
-    window.location.assign("/dashboard");
+    navigate({ to: "/dashboard" });
   }
 
   return (
