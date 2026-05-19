@@ -223,7 +223,7 @@ export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
       return { date, tasks: [], message: "No goals yet. Import goals to generate missions." };
     }
 
-    const poolSummary = pool.map((s: any) => ({
+    const poolSummary: PoolTask[] = pool.map((s: any) => ({
       id: s.id,
       title: s.title,
       minutes: s.estimated_minutes,
@@ -238,18 +238,24 @@ export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
-    const { object } = await generateObject({
-      model,
-      schema: SelectionSchema,
-      system:
-        "You pick exactly 4 daily missions from the user's open sub-task pool. " +
-        "Weight by: (1) closest goal deadline first, (2) higher goal priority, (3) higher task priority, " +
-        "(4) variety across goals. Total minutes should fit a day (aim 2–4 hours). " +
-        "Use the provided subtask_id verbatim. Pick task_type that best matches the title.",
-      prompt: `Today: ${date}\n\nOpen subtask pool:\n${JSON.stringify(poolSummary, null, 2)}`,
-    });
+    let picks: DailyPick[];
+    try {
+      const { text } = await generateText({
+        model,
+        temperature: 0.2,
+        maxOutputTokens: 2000,
+        system:
+          "Return ONLY valid JSON, no markdown. Shape: {\"picks\":[{\"subtask_id\":string,\"title\":string,\"task_type\":\"study|workout|read|practice|review|build|other\",\"estimated_minutes\":10-240}]}. " +
+          "Pick exactly 4 daily missions from the user's open sub-task pool. Weight closest deadline, high priority, and variety. Use subtask_id verbatim.",
+        prompt: `Today: ${date}\n\nOpen subtask pool:\n${JSON.stringify(poolSummary, null, 2)}`,
+      });
+      picks = normalizeDailyPicks(extractJsonFromResponse(text), poolSummary);
+    } catch (error) {
+      console.error("Daily mission AI selection failed; using fallback picker", error);
+      picks = normalizeDailyPicks({ picks: [] }, poolSummary);
+    }
 
-    const rows = object.picks.map((p, i) => ({
+    const rows = picks.map((p, i) => ({
       user_id: userId,
       date,
       slot: i + 1,
