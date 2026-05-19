@@ -11,15 +11,15 @@ const ImportInput = z.object({
 
 const ExtractionSchema = z.object({
   goals: z.array(z.object({
-    title: z.string().min(3).max(200),
-    deadline: z.string().nullable().describe("ISO date YYYY-MM-DD or null"),
-    priority: z.number().int().min(1).max(5).describe("1=highest, 5=lowest"),
+    title: z.string().describe("Goal title, 3-200 chars"),
+    deadline: z.string().describe("ISO date YYYY-MM-DD, or empty string if none"),
+    priority: z.number().describe("1=highest, 5=lowest"),
     subtasks: z.array(z.object({
-      title: z.string().min(3).max(200),
-      estimated_minutes: z.number().int().min(10).max(240),
-      priority: z.number().int().min(1).max(5),
-    })).min(1).max(20),
-  })).min(1).max(15),
+      title: z.string().describe("Subtask title"),
+      estimated_minutes: z.number().describe("Estimated minutes 10-240"),
+      priority: z.number().describe("1=highest, 5=lowest"),
+    })).describe("1-20 subtasks"),
+  })).describe("1-15 goals"),
 });
 
 export const importGoalsFromText = createServerFn({ method: "POST" })
@@ -54,8 +54,8 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
           title: g.title,
           source: data.source,
           raw_text: data.text.slice(0, 4000),
-          deadline: g.deadline,
-          priority: g.priority,
+          deadline: g.deadline && g.deadline.length >= 8 ? g.deadline : null,
+          priority: Math.max(1, Math.min(5, Math.round(g.priority))),
         })
         .select("id")
         .single();
@@ -65,8 +65,8 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
         goal_id: goalRow.id,
         user_id: userId,
         title: s.title,
-        estimated_minutes: s.estimated_minutes,
-        priority: s.priority,
+        estimated_minutes: Math.max(10, Math.min(240, Math.round(s.estimated_minutes))),
+        priority: Math.max(1, Math.min(5, Math.round(s.priority))),
       }));
       const { error: subErr } = await supabase.from("subtasks").insert(rows);
       if (subErr) throw new Error(subErr.message);
