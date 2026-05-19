@@ -14,11 +14,23 @@ export const Route = createFileRoute("/_authenticated/profile")({
 function ProfilePage() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { enabled, permission, enable, disable } = useReminders();
 
   async function signOut() {
     await supabase.auth.signOut();
     toast.success("Signed out.");
     navigate({ to: "/" });
+  }
+
+  async function handleEnable() {
+    const res = await enable();
+    if (res.ok) toast.success("Daily reminders enabled at 6:00 AM and 9:30 PM.");
+    else toast.error(res.reason);
+  }
+
+  function handleDisable() {
+    disable();
+    toast.success("Reminders disabled.");
   }
 
   return (
@@ -38,18 +50,30 @@ function ProfilePage() {
 
       <Card className="mb-4 p-5">
         <div className="flex items-start gap-3">
-          <Calendar className="mt-1 h-5 w-5 text-primary" />
+          {enabled ? <Bell className="mt-1 h-5 w-5 text-primary" /> : <BellOff className="mt-1 h-5 w-5 text-muted-foreground" />}
           <div className="flex-1">
-            <p className="font-semibold">Google Calendar</p>
+            <p className="font-semibold">Daily reminders</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Get 6 AM mission and 9:30 PM night-review reminders on your calendar.
+              Browser notifications at 6:00 AM (morning mission) and 9:30 PM (night review). Keep this app open in a tab.
             </p>
-            <Button size="sm" variant="secondary" className="mt-3" disabled>
-              Coming soon
-            </Button>
+            {permission === "denied" && (
+              <p className="mt-2 text-xs text-destructive">
+                Notifications blocked. Enable them in your browser site settings, then try again.
+              </p>
+            )}
+            {enabled ? (
+              <Button size="sm" variant="outline" className="mt-3" onClick={handleDisable}>
+                Disable reminders
+              </Button>
+            ) : (
+              <Button size="sm" className="mt-3" onClick={handleEnable} disabled={permission === "denied"}>
+                Enable reminders
+              </Button>
+            )}
           </div>
         </div>
       </Card>
+
 
       <Button variant="outline" className="w-full" onClick={signOut}>
         <LogOut className="mr-2 h-4 w-4" />
