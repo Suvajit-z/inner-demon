@@ -21,10 +21,15 @@ function LoginPage() {
     e.preventDefault();
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      setBusy(false);
+      return toast.error(error.message);
+    }
+    // Ensure session is committed to storage before navigating
+    await supabase.auth.getSession();
     toast.success("Welcome back.");
-    navigate({ to: "/dashboard" });
+    // Hard navigation guarantees the next page sees the fresh session
+    window.location.assign("/dashboard");
   }
 
   return (
