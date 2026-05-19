@@ -84,7 +84,8 @@ function fallbackGoalsFromText(text: string): ExtractedGoal[] {
 }
 
 function normalizeExtractedGoals(raw: unknown, sourceText: string): ExtractedGoal[] {
-  const rawGoals = Array.isArray(asObject(raw).goals) ? asObject(raw).goals : Array.isArray(raw) ? raw : [];
+  const rawGoalValue = asObject(raw).goals;
+  const rawGoals: unknown[] = Array.isArray(rawGoalValue) ? rawGoalValue : Array.isArray(raw) ? raw : [];
   const goals = rawGoals.slice(0, 15).map((goal, goalIndex: number) => {
     const goalData = asObject(goal);
     const title = cleanTitle(goalData.title, `Goal ${goalIndex + 1}`);
