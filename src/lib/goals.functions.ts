@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { generateObject } from "ai";
+import { generateText } from "ai";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createLovableAiGatewayProvider } from "./ai-gateway";
 
@@ -9,18 +9,86 @@ const ImportInput = z.object({
   source: z.enum(["pdf", "paste"]),
 });
 
-const ExtractionSchema = z.object({
-  goals: z.array(z.object({
-    title: z.string().describe("Goal title, 3-200 chars"),
-    deadline: z.string().describe("ISO date YYYY-MM-DD, or empty string if none"),
-    priority: z.number().describe("1=highest, 5=lowest"),
-    subtasks: z.array(z.object({
-      title: z.string().describe("Subtask title"),
-      estimated_minutes: z.number().describe("Estimated minutes 10-240"),
-      priority: z.number().describe("1=highest, 5=lowest"),
-    })).describe("1-20 subtasks"),
-  })).describe("1-15 goals"),
-});
+type ExtractedGoal = {
+  title: string;
+  deadline: string;
+  priority: number;
+  subtasks: Array<{ title: string; estimated_minutes: number; priority: number }>;
+};
+
+const TASK_TYPES = ["study", "workout", "read", "practice", "review", "build", "other"] as const;
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number) {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, Math.round(n))) : fallback;
+}
+
+function cleanTitle(value: unknown, fallback: string) {
+  const title = String(value ?? "").replace(/^[-*•\d.)\s]+/, "").trim();
+  return title.length >= 3 ? title.slice(0, 200) : fallback;
+}
+
+function extractJsonFromResponse(response: string): unknown {
+  let cleaned = response.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
+  const start = cleaned.search(/[\[{]/);
+  const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
+  if (start === -1 || end === -1 || end <= start) throw new Error("No JSON found in AI response");
+  cleaned = cleaned.slice(start, end + 1);
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    return JSON.parse(
+      cleaned
+        .replace(/,\s*}/g, "}")
+        .replace(/,\s*]/g, "]")
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ""),
+    );
+  }
+}
+
+function fallbackGoalsFromText(text: string): ExtractedGoal[] {
+  const lines = text
+    .split(/\n|\r|;/)
+    .map((line) => cleanTitle(line, ""))
+    .filter((line) => line.length >= 8 && line.length <= 180)
+    .slice(0, 5);
+  const titles = lines.length ? lines : [cleanTitle(text.split(/[.!?]/)[0], "Build a focused personal goal")];
+
+  return titles.map((title) => ({
+    title,
+    deadline: "",
+    priority: 3,
+    subtasks: [
+      `Clarify the next outcome for ${title}`,
+      `Break ${title} into weekly milestones`,
+      `Schedule the first focused work block`,
+      `Review progress and adjust the plan`,
+    ].map((task, index) => ({ title: task.slice(0, 200), estimated_minutes: index === 1 ? 45 : 30, priority: index + 1 })),
+  }));
+}
+
+function normalizeExtractedGoals(raw: unknown, sourceText: string): ExtractedGoal[] {
+  const rawGoals = Array.isArray((raw as any)?.goals) ? (raw as any).goals : Array.isArray(raw) ? raw : [];
+  const goals = rawGoals.slice(0, 15).map((goal: any, goalIndex: number) => {
+    const title = cleanTitle(goal?.title, `Goal ${goalIndex + 1}`);
+    const rawSubtasks = Array.isArray(goal?.subtasks) ? goal.subtasks : [];
+    const subtasks = rawSubtasks.slice(0, 20).map((subtask: any, subtaskIndex: number) => ({
+      title: cleanTitle(subtask?.title, `Work on ${title}`),
+      estimated_minutes: clampNumber(subtask?.estimated_minutes, 10, 240, 30),
+      priority: clampNumber(subtask?.priority, 1, 5, Math.min(5, subtaskIndex + 1)),
+    }));
+
+    return {
+      title,
+      deadline: typeof goal?.deadline === "string" ? goal.deadline : "",
+      priority: clampNumber(goal?.priority, 1, 5, 3),
+      subtasks: subtasks.length ? subtasks : fallbackGoalsFromText(title)[0].subtasks,
+    };
+  });
+
+  return goals.length ? goals : fallbackGoalsFromText(sourceText);
+}
 
 export const importGoalsFromText = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
