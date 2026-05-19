@@ -101,7 +101,24 @@ function AuthSync() {
       router.invalidate();
       qc.invalidateQueries();
     });
-    return () => subscription.unsubscribe();
+    // Auto-recover from stale Vite chunks after dev-server restarts
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const msg = String((e.reason && (e.reason.message || e.reason)) || "");
+      if (
+        msg.includes("Failed to fetch dynamically imported module") ||
+        msg.includes("Importing a module script failed")
+      ) {
+        if (typeof sessionStorage !== "undefined" && !sessionStorage.getItem("__chunk_reloaded")) {
+          sessionStorage.setItem("__chunk_reloaded", "1");
+          window.location.reload();
+        }
+      }
+    };
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
   }, [router, qc]);
   return null;
 }
