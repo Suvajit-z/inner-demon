@@ -5,12 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
-    const { data } = await supabase.auth.getSession();
-    console.log("[_authenticated guard] getSession", { hasSession: !!data.session, userId: data.session?.user?.id });
+    let { data } = await supabase.auth.getSession();
+    // Retry briefly in case localStorage hasn't been read yet on fresh page load
     if (!data.session) {
-      console.log("[_authenticated guard] redirecting to /login");
-      throw redirect({ to: "/login" });
+      await new Promise((r) => setTimeout(r, 150));
+      ({ data } = await supabase.auth.getSession());
     }
+    if (!data.session) throw redirect({ to: "/login" });
     if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("__chunk_reloaded");
   },
   component: AuthedLayout,
