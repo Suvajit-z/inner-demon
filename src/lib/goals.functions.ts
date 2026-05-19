@@ -101,20 +101,27 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
     const gateway = createLovableAiGatewayProvider(key);
     const model = gateway("google/gemini-3-flash-preview");
 
-    const { object } = await generateObject({
-      model,
-      schema: ExtractionSchema,
-      system:
-        "You analyze goal documents, study plans, and routines. Extract distinct top-level goals. " +
-        "For each goal, break it into 3–15 concrete, actionable sub-tasks the person can execute. " +
-        "Estimate minutes realistically. Priority: 1=urgent/critical, 5=nice-to-have. " +
-        "If a deadline is mentioned, parse it to YYYY-MM-DD; otherwise null.",
-      prompt: `Today is ${new Date().toISOString().slice(0, 10)}.\n\nSource text:\n${data.text}`,
-    });
+    let goals: ExtractedGoal[];
+    try {
+      const { text } = await generateText({
+        model,
+        temperature: 0.2,
+        maxOutputTokens: 4000,
+        system:
+          "You analyze goal documents, study plans, and routines. Return ONLY valid JSON, no markdown. " +
+          "Shape: {\"goals\":[{\"title\":string,\"deadline\":\"YYYY-MM-DD or empty string\",\"priority\":1-5,\"subtasks\":[{\"title\":string,\"estimated_minutes\":10-240,\"priority\":1-5}]}]}. " +
+          "Extract distinct top-level goals and create 3-15 concrete, actionable sub-tasks for each.",
+        prompt: `Today is ${new Date().toISOString().slice(0, 10)}.\n\nSource text:\n${data.text}`,
+      });
+      goals = normalizeExtractedGoals(extractJsonFromResponse(text), data.text);
+    } catch (error) {
+      console.error("Goal import AI extraction failed; using fallback parser", error);
+      goals = fallbackGoalsFromText(data.text);
+    }
 
     // Insert goals + subtasks
     let totalSubtasks = 0;
-    for (const g of object.goals) {
+    for (const g of goals) {
       const { data: goalRow, error: goalErr } = await supabase
         .from("goals")
         .insert({
@@ -141,21 +148,53 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
       totalSubtasks += rows.length;
     }
 
-    return { goalsImported: object.goals.length, subtasksImported: totalSubtasks };
+    return { goalsImported: goals.length, subtasksImported: totalSubtasks };
   });
 
 // ---------------- Daily task generation ----------------
 
 const SelectInput = z.object({ date: z.string().optional() });
 
-const SelectionSchema = z.object({
-  picks: z.array(z.object({
-    subtask_id: z.string().uuid(),
-    title: z.string(),
-    task_type: z.enum(["study", "workout", "read", "practice", "review", "build", "other"]),
-    estimated_minutes: z.number().int().min(10).max(240),
-  })).length(4),
-});
+type PoolTask = { id: string; title: string; minutes: number; task_priority: number; goal?: string; goal_deadline?: string | null; goal_priority?: number };
+type DailyPick = { subtask_id: string; title: string; task_type: (typeof TASK_TYPES)[number]; estimated_minutes: number };
+
+function inferTaskType(title: string): DailyPick["task_type"] {
+  const lower = title.toLowerCase();
+  if (/workout|gym|run|exercise|train|cardio|lift/.test(lower)) return "workout";
+  if (/read|book|chapter/.test(lower)) return "read";
+  if (/review|revise|recap|reflect/.test(lower)) return "review";
+  if (/practice|drill|problem|quiz/.test(lower)) return "practice";
+  if (/build|create|write|ship|code|make/.test(lower)) return "build";
+  if (/study|learn|course|lesson|class/.test(lower)) return "study";
+  return "other";
+}
+
+function normalizeDailyPicks(raw: unknown, pool: PoolTask[]): DailyPick[] {
+  const byId = new Map(pool.map((task) => [task.id, task]));
+  const rawPicks = Array.isArray((raw as any)?.picks) ? (raw as any).picks : [];
+  const picks: DailyPick[] = [];
+
+  for (const pick of rawPicks) {
+    const source = byId.get(String(pick?.subtask_id ?? ""));
+    if (!source || picks.some((p) => p.subtask_id === source.id)) continue;
+    const candidateType = String(pick?.task_type ?? "");
+    picks.push({
+      subtask_id: source.id,
+      title: cleanTitle(pick?.title, source.title),
+      task_type: TASK_TYPES.includes(candidateType as DailyPick["task_type"]) ? candidateType as DailyPick["task_type"] : inferTaskType(source.title),
+      estimated_minutes: clampNumber(pick?.estimated_minutes, 10, 240, source.minutes || 30),
+    });
+  }
+
+  const sortedFallback = [...pool].sort((a, b) => (a.goal_priority ?? 5) - (b.goal_priority ?? 5) || a.task_priority - b.task_priority);
+  for (const task of sortedFallback) {
+    if (picks.length >= 4) break;
+    if (picks.some((p) => p.subtask_id === task.id)) continue;
+    picks.push({ subtask_id: task.id, title: task.title, task_type: inferTaskType(task.title), estimated_minutes: clampNumber(task.minutes, 10, 240, 30) });
+  }
+
+  return picks.slice(0, 4);
+}
 
 export const getOrGenerateDailyTasks = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
