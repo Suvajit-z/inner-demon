@@ -3,8 +3,18 @@ import { useCallback, useEffect, useState } from "react";
 const STORAGE_KEY = "inner-demon-reminders-enabled";
 
 const REMINDERS = [
-  { hour: 6, minute: 0, title: "🔥 Inner Demon — Morning Mission", body: "Today's 4 tasks are waiting. Time to execute." },
-  { hour: 21, minute: 30, title: "🌙 Inner Demon — Night Review", body: "Reflect on today. What got done? What's left?" },
+  {
+    hour: 6,
+    minute: 0,
+    title: "🔥 Inner Demon — Morning Mission",
+    body: "Today's 4 tasks are waiting. Time to execute.",
+  },
+  {
+    hour: 21,
+    minute: 30,
+    title: "🌙 Inner Demon — Night Review",
+    body: "Reflect on today. What got done? What's left?",
+  },
 ];
 
 function msUntilNext(hour: number, minute: number) {
@@ -52,11 +62,14 @@ export function useReminders() {
     let perm = Notification.permission;
     if (perm === "default") perm = await Notification.requestPermission();
     setPermission(perm);
-    if (perm !== "granted") return { ok: false, reason: "Permission denied. Enable notifications in browser settings." };
+    if (perm !== "granted")
+      return { ok: false, reason: "Permission denied. Enable notifications in browser settings." };
     localStorage.setItem(STORAGE_KEY, "1");
     setEnabled(true);
     try {
-      new Notification("✅ Reminders enabled", { body: "You'll be pinged at 6:00 AM and 9:30 PM daily (while this tab is open)." });
+      new Notification("✅ Reminders enabled", {
+        body: "You'll be pinged at 6:00 AM and 9:30 PM daily (while this tab is open).",
+      });
     } catch {
       /* ignore */
     }

@@ -47,8 +47,11 @@ In `src/routes/login.tsx`, after `signInWithPassword` succeeds, await `supabase.
 
 ```ts
 const { error } = await supabase.auth.signInWithPassword({ email, password });
-if (error) { toast.error(error.message); return; }
-await supabase.auth.getSession();   // ensures session is committed
+if (error) {
+  toast.error(error.message);
+  return;
+}
+await supabase.auth.getSession(); // ensures session is committed
 toast.success("Welcome back.");
 window.location.assign("/dashboard");
 ```
