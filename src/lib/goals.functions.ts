@@ -384,16 +384,20 @@ export const listGoals = createServerFn({ method: "GET" })
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) throw new Error(error.message);
-    return (data ?? []).map((g: any) => ({
-      id: g.id,
-      title: g.title,
-      source: g.source,
-      deadline: g.deadline,
-      priority: g.priority,
-      created_at: g.created_at,
-      subtask_total: g.subtasks?.length ?? 0,
-      subtask_done: (g.subtasks ?? []).filter((s: any) => s.completed).length,
-    }));
+    return (data ?? []).map((g) => {
+      const row = asObject(g);
+      const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
+      return {
+        id: row.id,
+        title: row.title,
+        source: row.source,
+        deadline: row.deadline,
+        priority: row.priority,
+        created_at: row.created_at,
+        subtask_total: subtasks.length,
+        subtask_done: subtasks.filter((s) => asObject(s).completed === true).length,
+      };
+    });
   });
 
 const DeleteGoalInput = z.object({ id: z.string().uuid() });
