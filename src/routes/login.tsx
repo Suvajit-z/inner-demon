@@ -20,15 +20,16 @@ function LoginPage() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log("[login] submitting", email);
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
+    console.log("[login] signIn result", { error, hasSession: !!signInData?.session, userId: signInData?.user?.id });
     if (error) {
       setBusy(false);
       return toast.error(error.message);
     }
-    // Ensure session is committed to storage before navigating
-    await supabase.auth.getSession();
+    const { data: sessionData } = await supabase.auth.getSession();
+    console.log("[login] post-sign-in getSession", { hasSession: !!sessionData?.session });
     toast.success("Welcome back.");
-    // Hard navigation guarantees the next page sees the fresh session
     window.location.assign("/dashboard");
   }
 
