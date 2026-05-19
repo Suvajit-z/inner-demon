@@ -5,9 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
-    // getSession reads from localStorage — no network race
     const { data } = await supabase.auth.getSession();
-    if (!data.session) throw redirect({ to: "/login" });
+    console.log("[_authenticated guard] getSession", { hasSession: !!data.session, userId: data.session?.user?.id });
+    if (!data.session) {
+      console.log("[_authenticated guard] redirecting to /login");
+      throw redirect({ to: "/login" });
+    }
     if (typeof sessionStorage !== "undefined") sessionStorage.removeItem("__chunk_reloaded");
   },
   component: AuthedLayout,
