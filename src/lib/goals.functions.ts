@@ -388,12 +388,12 @@ export const listGoals = createServerFn({ method: "GET" })
       const row = asObject(g);
       const subtasks = Array.isArray(row.subtasks) ? row.subtasks : [];
       return {
-        id: row.id,
-        title: row.title,
-        source: row.source,
-        deadline: row.deadline,
-        priority: row.priority,
-        created_at: row.created_at,
+        id: String(row.id),
+        title: String(row.title ?? "Untitled goal"),
+        source: String(row.source ?? "paste"),
+        deadline: typeof row.deadline === "string" ? row.deadline : null,
+        priority: clampNumber(row.priority, 1, 5, 3),
+        created_at: String(row.created_at ?? ""),
         subtask_total: subtasks.length,
         subtask_done: subtasks.filter((s) => asObject(s).completed === true).length,
       };
