@@ -54,11 +54,20 @@ export const importGoalsFromText = createServerFn({ method: "POST" })
           title: g.title,
           source: data.source,
           raw_text: data.text.slice(0, 4000),
-          deadline: g.deadline,
-          priority: g.priority,
+          deadline: g.deadline && g.deadline.length >= 8 ? g.deadline : null,
+          priority: Math.max(1, Math.min(5, Math.round(g.priority))),
         })
         .select("id")
         .single();
+      if (goalErr || !goalRow) throw new Error(goalErr?.message ?? "Failed to save goal");
+
+      const rows = g.subtasks.map((s) => ({
+        goal_id: goalRow.id,
+        user_id: userId,
+        title: s.title,
+        estimated_minutes: Math.max(10, Math.min(240, Math.round(s.estimated_minutes))),
+        priority: Math.max(1, Math.min(5, Math.round(s.priority))),
+      }));
       if (goalErr || !goalRow) throw new Error(goalErr?.message ?? "Failed to save goal");
 
       const rows = g.subtasks.map((s) => ({
