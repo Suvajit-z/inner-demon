@@ -16,6 +16,8 @@ type ExtractedGoal = {
   subtasks: Array<{ title: string; estimated_minutes: number; priority: number }>;
 };
 
+type JsonMap = Record<string, unknown>;
+
 const TASK_TYPES = ["study", "workout", "read", "practice", "review", "build", "other"] as const;
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number) {
@@ -28,9 +30,22 @@ function cleanTitle(value: unknown, fallback: string) {
   return title.length >= 3 ? title.slice(0, 200) : fallback;
 }
 
+function asObject(value: unknown): JsonMap {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as JsonMap) : {};
+}
+
+function stripControlCharacters(value: string) {
+  return Array.from(value)
+    .filter((char) => {
+      const code = char.charCodeAt(0);
+      return code === 9 || code === 10 || code === 13 || code >= 32;
+    })
+    .join("");
+}
+
 function extractJsonFromResponse(response: string): unknown {
   let cleaned = response.replace(/```json\s*/gi, "").replace(/```/g, "").trim();
-  const start = cleaned.search(/[\[{]/);
+  const start = cleaned.search(/[[{]/);
   const end = Math.max(cleaned.lastIndexOf("}"), cleaned.lastIndexOf("]"));
   if (start === -1 || end === -1 || end <= start) throw new Error("No JSON found in AI response");
   cleaned = cleaned.slice(start, end + 1);
@@ -42,7 +57,7 @@ function extractJsonFromResponse(response: string): unknown {
       cleaned
         .replace(/,\s*}/g, "}")
         .replace(/,\s*]/g, "]")
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ""),
+        .replace(/[\x7F]/g, ""),
     );
   }
 }
@@ -69,20 +84,24 @@ function fallbackGoalsFromText(text: string): ExtractedGoal[] {
 }
 
 function normalizeExtractedGoals(raw: unknown, sourceText: string): ExtractedGoal[] {
-  const rawGoals = Array.isArray((raw as any)?.goals) ? (raw as any).goals : Array.isArray(raw) ? raw : [];
-  const goals = rawGoals.slice(0, 15).map((goal: any, goalIndex: number) => {
-    const title = cleanTitle(goal?.title, `Goal ${goalIndex + 1}`);
-    const rawSubtasks = Array.isArray(goal?.subtasks) ? goal.subtasks : [];
-    const subtasks = rawSubtasks.slice(0, 20).map((subtask: any, subtaskIndex: number) => ({
-      title: cleanTitle(subtask?.title, `Work on ${title}`),
-      estimated_minutes: clampNumber(subtask?.estimated_minutes, 10, 240, 30),
-      priority: clampNumber(subtask?.priority, 1, 5, Math.min(5, subtaskIndex + 1)),
+  const rawGoals = Array.isArray(asObject(raw).goals) ? asObject(raw).goals : Array.isArray(raw) ? raw : [];
+  const goals = rawGoals.slice(0, 15).map((goal, goalIndex: number) => {
+    const goalData = asObject(goal);
+    const title = cleanTitle(goalData.title, `Goal ${goalIndex + 1}`);
+    const rawSubtasks = Array.isArray(goalData.subtasks) ? goalData.subtasks : [];
+    const subtasks = rawSubtasks.slice(0, 20).map((subtask, subtaskIndex: number) => {
+      const subtaskData = asObject(subtask);
+      return {
+        title: cleanTitle(subtaskData.title, `Work on ${title}`),
+        estimated_minutes: clampNumber(subtaskData.estimated_minutes, 10, 240, 30),
+        priority: clampNumber(subtaskData.priority, 1, 5, Math.min(5, subtaskIndex + 1)),
+      };
     }));
 
     return {
       title,
-      deadline: typeof goal?.deadline === "string" ? goal.deadline : "",
-      priority: clampNumber(goal?.priority, 1, 5, 3),
+      deadline: typeof goalData.deadline === "string" ? goalData.deadline : "",
+      priority: clampNumber(goalData.priority, 1, 5, 3),
       subtasks: subtasks.length ? subtasks : fallbackGoalsFromText(title)[0].subtasks,
     };
   });
