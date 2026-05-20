@@ -64,7 +64,8 @@ const defaultState: AppState = {
 };
 
 export const getState = (): AppState => {
-  const raw = localStorage.getItem(KEY);
+  if (typeof window === "undefined") return defaultState;
+  const raw = window.localStorage.getItem(KEY);
   if (!raw) return defaultState;
   try {
     return { ...defaultState, ...JSON.parse(raw) };
@@ -72,7 +73,11 @@ export const getState = (): AppState => {
     return defaultState;
   }
 };
-export const saveState = (s: AppState) => localStorage.setItem(KEY, JSON.stringify(s));
+export const saveState = (s: AppState) => {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(KEY, JSON.stringify(s));
+};
+
 export const getForm = (i: number) => FORMS[Math.min(i, FORMS.length - 1)];
 
 export const generateTasks = (goals: Goal[]): DailyTask[] => {
