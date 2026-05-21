@@ -9,6 +9,8 @@ export interface Goal {
   deadline: string;
   priority: Priority;
   createdAt: string;
+  source?: "manual" | "notion";
+  status?: "todo" | "done";
 }
 
 export interface DailyTask {
@@ -16,94 +18,55 @@ export interface DailyTask {
   title: string;
   category: "Study" | "Workout" | "Other";
   completed: boolean;
+  source?: "local" | "notion";
+  deadline?: string;
 }
 
-export interface NightReport {
-  id: string;
-  tasksCompleted: number;
-  wentWell: string;
-  wentWrong: string;
-  tomorrowFocus: string;
-  powerGained: number;
-  date: string;
-}
+export interface NightReport { id: string; date: string; completionRate: number; win: string; failure: string; mental: number; mission: string; }
 
-interface AppState {
+export interface AppState {
+  email: string;
   name: string;
   power: number;
+  isPaid: boolean;
+  isAdmin: boolean;
   goals: Goal[];
   tasksByDate: Record<string, DailyTask[]>;
   reviews: NightReport[];
-  reviewedDates: string[];
+  missedNights: number;
+  lockUntil?: number;
+  wrongOtpTries: number;
+  otpExpiresAt?: number;
+  otpResendAt?: number;
+  otpCode?: string;
+  notionConnected?: boolean;
+  gcalConnected?: boolean;
 }
 
-const KEY = "inner-demon-v2";
-
+const KEY = "inner-demon-v3";
 const today = () => new Date().toISOString().slice(0, 10);
 const id = () => crypto.randomUUID();
 
-const defaultState: AppState = {
-  name: "Warrior",
-  power: 1,
-  goals: [],
-  tasksByDate: {},
-  reviews: [],
-  reviewedDates: [],
-};
+const defaultState: AppState = { email: "", name: "Warrior", power: 1, isPaid: false, isAdmin: false, goals: [], tasksByDate: {}, reviews: [], missedNights: 0, wrongOtpTries: 0 };
 
 export const getState = (): AppState => {
   if (typeof window === "undefined") return defaultState;
-  const raw = window.localStorage.getItem(KEY);
+  const raw = localStorage.getItem(KEY);
   if (!raw) return defaultState;
-  try {
-    return { ...defaultState, ...JSON.parse(raw) };
-  } catch {
-    return defaultState;
-  }
+  try { return { ...defaultState, ...JSON.parse(raw) }; } catch { return defaultState; }
 };
-export const saveState = (s: AppState) => {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(s));
-};
+export const saveState = (s: AppState) => localStorage.setItem(KEY, JSON.stringify(s));
 
 export const generateTasks = (goals: Goal[]): DailyTask[] => {
-  const pool = goals.flatMap((g) => {
-    const category: DailyTask["category"] =
-      g.type === "Study" ? "Study" : g.type === "Workout" ? "Workout" : "Other";
-    return [
-      { title: `Spend 45 minutes on ${g.title}`, category },
-      { title: `Complete one measurable step for ${g.title}`, category },
-      { title: `Review and write notes for ${g.title}`, category },
-    ];
-  });
+  const pool = goals.map((g) => ({ title: `Complete one concrete step for ${g.title}`, category: g.type === "Study" ? "Study" : g.type === "Workout" ? "Workout" : "Other" as const, source: g.source === "notion" ? "notion" : "local" as const, deadline: g.deadline }));
   const fallback = [
-    { title: "Plan your top 3 priorities for today", category: "Other" as const },
-    { title: "Do a 90-minute focused study sprint", category: "Study" as const },
-    { title: "Complete a 60-minute workout session", category: "Workout" as const },
-    { title: "Clear one pending life/admin task", category: "Other" as const },
-    { title: "Write tomorrow's main focus in one sentence", category: "Other" as const },
+    { title: "Deep work sprint", category: "Study" as const, source: "local" as const },
+    { title: "Training session", category: "Workout" as const, source: "local" as const },
+    { title: "Mission planning", category: "Other" as const, source: "local" as const },
+    { title: "Execute hardest task", category: "Other" as const, source: "local" as const },
   ];
-  const source = pool.length ? pool : fallback;
-  return source.slice(0, 5).map((task) => ({ id: id(), ...task, completed: false }));
+  return (pool.length ? pool : fallback).slice(0, 4).map((t) => ({ id: id(), completed: false, ...t }));
 };
-
-export const ensureTodayTasks = (state: AppState): AppState => {
-  const d = today();
-  if (!state.tasksByDate[d]) state.tasksByDate[d] = generateTasks(state.goals);
-  return state;
-};
-
-export const getStreakDays = (state: AppState) => {
-  const dates = new Set(state.reviews.map((r) => r.date));
-  let streak = 0;
-  const cursor = new Date();
-  while (true) {
-    const key = cursor.toISOString().slice(0, 10);
-    if (!dates.has(key)) break;
-    streak += 1;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return streak;
-};
-
 export const todayKey = today;
+export const ensureTodayTasks = (s: AppState) => { const d = today(); if (!s.tasksByDate[d]) s.tasksByDate[d] = generateTasks(s.goals); return s; };
+export const timerFor = (c: DailyTask["category"]) => c === "Study" ? 90*60 : c === "Workout" ? 60*60 : 45*60;
