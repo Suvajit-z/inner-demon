@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, Link, createRootRouteWithContext, HeadContent, Scripts } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import appCss from "../styles.css?url";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -21,17 +21,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  const [splash, setSplash] = useState(true);
   useEffect(()=>{
     if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
-    const t = setTimeout(()=>setSplash(false), 2500);
-    return ()=>clearTimeout(t);
   },[]);
 
   return <QueryClientProvider client={queryClient}>
-    {splash ? <div className="fixed inset-0 z-[100] bg-[#050505] grid place-items-center">
-      <div className="text-center"><div className="w-20 h-20 mx-auto mb-5 rounded-full bg-[#8B0000] eye-blink pulse-red grid place-items-center text-3xl">👁</div><h1 className="text-3xl font-black text-[#D4AF37]">INNER DEMON</h1><p className="text-zinc-400">Forge Your Strongest Self</p></div>
-    </div> : <Outlet />}
+    <Outlet />
     <Toaster richColors theme="dark" position="top-center" />
   </QueryClientProvider>;
 }
