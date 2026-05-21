@@ -1,82 +1,33 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Flame } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import { getState, saveState } from "@/lib/app-state";
 
-export const Route = createFileRoute("/login")({
-  component: LoginPage,
-});
+export const Route = createFileRoute("/login")({ component: LoginPage });
+const adminEmail = "suvajitmurmu2020@gmail.com";
 
 function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setBusy(false);
-      return toast.error(error.message);
-    }
-    await supabase.auth.getSession();
-    setBusy(false);
-    toast.success("Welcome back.");
-    navigate({ to: "/dashboard" });
-  }
-
-  return (
-    <main className="min-h-screen bg-background px-6 py-12">
-      <div className="mx-auto max-w-md">
-        <div className="mb-10 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 ring-1 ring-primary/30">
-            <Flame className="h-7 w-7 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">Enter the realm</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Sign in to continue your ascension.</p>
-        </div>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              autoComplete="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </div>
-          <Button type="submit" className="w-full h-11 font-semibold" disabled={busy}>
-            {busy ? "Entering..." : "Sign in"}
-          </Button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          New here?{" "}
-          <Link to="/signup" className="text-primary hover:underline">
-            Create an account
-          </Link>
-        </p>
-      </div>
-    </main>
-  );
+  const [email, setEmail] = useState(""); const [otp, setOtp] = useState(["", "", "", "", "", ""]); const [step, setStep] = useState<"email"|"otp">("email");
+  const state = getState();
+  const locked = state.lockUntil && state.lockUntil > Date.now();
+  const time = useMemo(() => Math.max(0, Math.floor(((state.otpExpiresAt || 0) - Date.now()) / 1000)), [step, state.otpExpiresAt]);
+  const send = () => {
+    if (locked) return;
+    const s = getState();
+    s.email = email; s.otpCode = `${Math.floor(100000 + Math.random()*900000)}`; s.otpExpiresAt = Date.now()+10*60*1000; s.otpResendAt = Date.now()+60*1000; s.wrongOtpTries = 0; saveState(s);
+    alert(`Demo OTP: ${s.otpCode}`); setStep("otp");
+  };
+  const verify = () => {
+    const code = otp.join(""); const s = getState();
+    if (Date.now() > (s.otpExpiresAt || 0)) return;
+    if (code !== s.otpCode) { s.wrongOtpTries += 1; if (s.wrongOtpTries >= 3) s.lockUntil = Date.now()+15*60*1000; saveState(s); return; }
+    s.isAdmin = s.email === adminEmail; if (s.isAdmin) s.isPaid = true; saveState(s); navigate({to: s.isPaid ? "/dashboard" : "/signup"});
+  };
+  return <main className="min-h-screen bg-[#0A0A0A] text-zinc-100 px-5 py-10"><div className="max-w-md mx-auto">
+    <div className="text-center mb-6"><Flame className="mx-auto text-[#C9A84C]"/><h1 className="text-3xl font-bold">INNER DEMON</h1><Link className="text-sm text-[#C9A84C]" to="/privacy">Privacy Policy</Link></div>
+    {step === "email" ? <div className="space-y-3"><Input className="h-12" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/><Button className="w-full h-12" onClick={send}>Send OTP</Button></div> : <div className="space-y-4"><div className="grid grid-cols-6 gap-2">{otp.map((d,i)=><Input key={i} maxLength={1} className="h-12 text-center text-xl" value={d} onChange={e=>{const n=[...otp]; n[i]=e.target.value.replace(/\D/g,""); setOtp(n);}}/>)}</div><p>Expires in {Math.floor(time/60)}:{`${time%60}`.padStart(2,"0")}</p><Button className="w-full h-12" onClick={verify}>Verify OTP</Button></div>}
+  </div></main>;
 }

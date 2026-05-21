@@ -1,21 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { getState } from "@/lib/app-state";
-
-export const Route = createFileRoute("/_authenticated/profile")({ component: Profile });
-
-function Profile() {
-  const s = getState();
-  return (
-    <main className="mx-auto max-w-md p-4">
-      <h1 className="text-2xl font-bold text-primary">Past Reviews</h1>
-      <ul className="mt-4 space-y-2">
-        {s.reviews.map((r) => (
-          <li key={r.id} className="rounded border p-3 text-sm">
-            {r.date} | {r.tasksCompleted}/5 tasks | +{r.powerGained} power
-          </li>
-        ))}
-      </ul>
-      <p className="mt-4 font-semibold">Total Power: {s.power}</p>
-    </main>
-  );
-}
+import { createFileRoute, Link } from '@tanstack/react-router';
+import { getState, saveState } from '@/lib/app-state';
+export const Route = createFileRoute('/_authenticated/profile')({component:Profile});
+function Profile(){const s=getState(); const g=()=>{s.gcalConnected=true; saveState(s);}; return <main className='p-4 pb-24'><h1 className='text-2xl text-[#C9A84C] font-bold'>Profile & Settings</h1><p className='mt-2'>{s.email||'Unknown user'}</p><button className='mt-3 h-12 w-full rounded border border-[#C9A84C]' onClick={g}>Connect Google Calendar</button><button className='mt-2 h-12 w-full rounded border border-[#C9A84C]' onClick={()=>{s.notionConnected=true; saveState(s);}}>Connect Notion</button><Link to='/privacy' className='block mt-2 h-12 w-full rounded border border-zinc-700 text-center leading-[48px]'>Privacy Policy</Link>{s.isAdmin&&<section className='mt-5 rounded-xl border border-[#8B0000] p-3'><h2 className='font-bold text-[#C9A84C]'>ADMIN PANEL</h2><p>Total users: 1</p><p>Total money collected: ₹{s.isPaid?10:0}</p><button className='mt-2 h-10 px-3 rounded bg-[#8B0000]'>Reset User Rank</button></section>}</main>}
