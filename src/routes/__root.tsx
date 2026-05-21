@@ -15,9 +15,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
       { title: "Inner Demon" },
-      { name: "theme-color", content: "#0A0A0A" },
+      { name: "theme-color", content: "#C9A84C" },
+      { name:"apple-mobile-web-app-capable", content:"yes" },
+      { name:"apple-mobile-web-app-status-bar-style", content:"black" },
+      { name:"apple-mobile-web-app-title", content:"Inner Demon" },
     ],
-    links: [{ rel: "stylesheet", href: appCss }],
+    links: [{ rel: "stylesheet", href: appCss }, { rel:"manifest", href:"/manifest.json" }],
   }),
   shellComponent: ({ children }) => (
     <html lang="en">
@@ -27,6 +30,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       <body>
         {children}
         <Scripts />
+        <script dangerouslySetInnerHTML={{__html:`if('serviceWorker'in navigator){navigator.serviceWorker.register('/sw.js')} setTimeout(()=>{if(!localStorage.getItem('install-hide')) alert('📱 Install Inner Demon on your phone.')},30000);`}}/>
       </body>
     </html>
   ),

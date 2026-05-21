@@ -29,6 +29,13 @@ export interface AppState {
   name: string;
   power: number;
   isPaid: boolean;
+  trialEndsAt?: number;
+  pinHash?: string;
+  form: number;
+  maintenanceDay: 0 | 1 | 2;
+  evolutionHistory: { form: number; name: string; date: string }[];
+  failedPinAttempts: number;
+  activeSubscriber?: boolean;
   isAdmin: boolean;
   goals: Goal[];
   tasksByDate: Record<string, DailyTask[]>;
@@ -47,7 +54,7 @@ const KEY = "inner-demon-v3";
 const today = () => new Date().toISOString().slice(0, 10);
 const id = () => crypto.randomUUID();
 
-const defaultState: AppState = { email: "", name: "Warrior", power: 1, isPaid: false, isAdmin: false, goals: [], tasksByDate: {}, reviews: [], missedNights: 0, wrongOtpTries: 0 };
+const defaultState: AppState = { email: "", name: "Warrior", power: 1, isPaid: false, isAdmin: false, form: 1, maintenanceDay: 0, evolutionHistory: [], failedPinAttempts: 0, goals: [], tasksByDate: {}, reviews: [], missedNights: 0, wrongOtpTries: 0 };
 
 export const getState = (): AppState => {
   if (typeof window === "undefined") return defaultState;
@@ -70,3 +77,9 @@ export const generateTasks = (goals: Goal[]): DailyTask[] => {
 export const todayKey = today;
 export const ensureTodayTasks = (s: AppState) => { const d = today(); if (!s.tasksByDate[d]) s.tasksByDate[d] = generateTasks(s.goals); return s; };
 export const timerFor = (c: DailyTask["category"]) => c === "Study" ? 90*60 : c === "Workout" ? 60*60 : 45*60;
+export const formNames = ["AWAKENING SHADE","RISING WRAITH","IRON FIEND","VOID HOWLER","EMBER TYRANT","BLOOD SERAPH","NIGHT BERSERKER","OBSIDIAN TITAN","ABYSS MONARCH","INNER LEGEND"];
+
+export const computeDailyPowerDelta = (taskDone: number, filedNight: boolean, streakBonus: boolean) => {
+  const taskGain = taskDone >= 4 ? 4 : taskDone === 3 ? 2 : taskDone === 2 ? 1 : 0;
+  return Math.min(6, taskGain + (filedNight ? 1 : 0) + (streakBonus ? 1 : 0));
+};
