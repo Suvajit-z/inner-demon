@@ -65,7 +65,7 @@ export const getState = (): AppState => {
 export const saveState = (s: AppState) => localStorage.setItem(KEY, JSON.stringify(s));
 
 export const generateTasks = (goals: Goal[]): DailyTask[] => {
-  const pool = goals.map((g) => ({ title: `Complete one concrete step for ${g.title}`, category: g.type === "Study" ? "Study" : g.type === "Workout" ? "Workout" : "Other" as const, source: g.source === "notion" ? "notion" : "local" as const, deadline: g.deadline }));
+  const pool: Omit<DailyTask,'id'|'completed'>[] = goals.map((g) => ({ title: `Complete one concrete step for ${g.title}`, category: (g.type === "Study" ? "Study" : g.type === "Workout" ? "Workout" : "Other"), source: g.source === "notion" ? "notion" : "local", deadline: g.deadline }));
   const fallback = [
     { title: "Deep work sprint", category: "Study" as const, source: "local" as const },
     { title: "Training session", category: "Workout" as const, source: "local" as const },

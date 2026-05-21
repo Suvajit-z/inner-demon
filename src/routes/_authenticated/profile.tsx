@@ -4,8 +4,14 @@ import { useEffect, useState } from 'react';
 export const Route = createFileRoute('/_authenticated/profile')({component: Profile});
 
 function Profile(){
-  const [notif,setNotif]=useState(Notification.permission==='granted');
-  useEffect(()=>{ if(localStorage.getItem('inner-install-seen')) return; alert('Install Inner Demon\nAdd to Home Screen for full app experience.'); localStorage.setItem('inner-install-seen','1'); },[]);
+  const [notif,setNotif]=useState(false);
+  useEffect(()=>{
+    if(typeof window==='undefined') return;
+    if(typeof Notification!=='undefined') setNotif(Notification.permission==='granted');
+    if(localStorage.getItem('inner-install-seen')) return;
+    alert('Install Inner Demon\nAdd to Home Screen for full app experience.');
+    localStorage.setItem('inner-install-seen','1');
+  },[]);
 
   const askNotif=async()=>{
     const p = await Notification.requestPermission();
