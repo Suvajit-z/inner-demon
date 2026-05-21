@@ -20,6 +20,7 @@ function GoalsPage() {
   const add = () => {
     if (!form.title.trim()) return;
     state.goals.unshift({ ...form, id: crypto.randomUUID(), createdAt: new Date().toISOString() });
+    saveState(state);
     setForm({ title: "", description: "", type: "Study", deadline: "", priority: "Medium" });
     setRefresh((v) => v + 1);
   };
@@ -73,6 +74,17 @@ function GoalsPage() {
             <p className="text-xs mt-1">
               {g.type} • {g.priority} • {g.deadline || "No deadline"}
             </p>
+            <Button
+              className="mt-2"
+              variant="outline"
+              onClick={() => {
+                state.goals = state.goals.filter((goal) => goal.id !== g.id);
+                saveState(state);
+                setRefresh((v) => v + 1);
+              }}
+            >
+              Delete
+            </Button>
           </li>
         ))}
       </ul>

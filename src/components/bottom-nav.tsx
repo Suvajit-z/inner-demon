@@ -1,12 +1,12 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { Home, Target, ChartNoAxesColumn, User } from "lucide-react";
+import { Home, Target, ChartNoAxesColumn, History } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/dashboard", label: "Home", Icon: Home },
   { to: "/goals", label: "Goals", Icon: Target },
-  { to: "/progress", label: "Progress", Icon: ChartNoAxesColumn },
-  { to: "/profile", label: "Profile", Icon: User },
+  { to: "/progress", label: "Review", Icon: ChartNoAxesColumn },
+  { to: "/profile", label: "History", Icon: History },
 ] as const;
 
 export function BottomNav() {
