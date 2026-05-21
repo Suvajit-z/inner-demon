@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { applyEvolution, getState, saveState, todayKey } from "@/lib/app-state";
+import { getState, saveState, todayKey } from "@/lib/app-state";
 
 export const Route = createFileRoute("/_authenticated/progress")({ component: Progress });
 
@@ -8,23 +8,24 @@ function Progress() {
   const [v, setV] = useState(0);
   const s = getState();
   const reviewed = s.reviewedDates.includes(todayKey());
-  const [achieved, setAchieved] = useState("");
-  const [mistake, setMistake] = useState("");
-  const [mental, setMental] = useState(5);
-  const [mission, setMission] = useState("");
+  const [tasksCompleted, setTasksCompleted] = useState(0);
+  const [wentWell, setWentWell] = useState("");
+  const [wentWrong, setWentWrong] = useState("");
+  const [tomorrowFocus, setTomorrowFocus] = useState("");
   const file = () => {
     if (reviewed) return;
+    const powerGained = Math.max(0, Math.min(5, tasksCompleted));
     s.reviews.unshift({
       id: crypto.randomUUID(),
-      achieved,
-      mistake,
-      mentalState: mental,
-      tomorrowMission: mission,
+      tasksCompleted,
+      wentWell,
+      wentWrong,
+      tomorrowFocus,
+      powerGained,
       date: todayKey(),
     });
     s.reviewedDates.push(todayKey());
-    s.power += 1;
-    applyEvolution(s);
+    s.power += powerGained;
     saveState(s);
     setV(v + 1);
   };
@@ -37,50 +38,51 @@ function Progress() {
   };
   return (
     <main className="mx-auto max-w-md p-4">
-      <h1 className="text-2xl font-bold text-primary">Progress</h1>
+      <h1 className="text-2xl font-bold text-primary">Night Review</h1>
       <div className="mt-4 rounded-lg border p-3 space-y-2">
-        <textarea
-          className="w-full rounded bg-card p-2"
-          placeholder="What did you achieve today?"
-          value={achieved}
-          onChange={(e) => setAchieved(e.target.value)}
-        />
-        <textarea
-          className="w-full rounded bg-card p-2"
-          placeholder="Biggest mistake today?"
-          value={mistake}
-          onChange={(e) => setMistake(e.target.value)}
-        />
         <input
-          className="w-full"
-          type="range"
-          min={1}
-          max={10}
-          value={mental}
-          onChange={(e) => setMental(Number(e.target.value))}
+          className="w-full rounded bg-card p-2"
+          min={0}
+          max={5}
+          type="number"
+          placeholder="Tasks completed (0-5)"
+          value={tasksCompleted}
+          onChange={(e) => setTasksCompleted(Number(e.target.value))}
         />
         <textarea
           className="w-full rounded bg-card p-2"
-          placeholder="Tomorrow's mission"
-          value={mission}
-          onChange={(e) => setMission(e.target.value)}
+          placeholder="What went well today?"
+          value={wentWell}
+          onChange={(e) => setWentWell(e.target.value)}
+        />
+        <textarea
+          className="w-full rounded bg-card p-2"
+          placeholder="What went wrong today?"
+          value={wentWrong}
+          onChange={(e) => setWentWrong(e.target.value)}
+        />
+        <textarea
+          className="w-full rounded bg-card p-2"
+          placeholder="Tomorrow's main focus"
+          value={tomorrowFocus}
+          onChange={(e) => setTomorrowFocus(e.target.value)}
         />
         <div className="flex gap-2">
           <button className="flex-1 rounded bg-primary text-primary-foreground py-2" onClick={file}>
-            FILE REPORT
+            SUBMIT REVIEW
           </button>
           <button className="flex-1 rounded border py-2" onClick={skip}>
-            SKIP
+            MISS REVIEW (-1 POWER)
           </button>
         </div>
       </div>
       <ul className="mt-4 space-y-2">
         {s.reviews.map((r) => (
           <li key={r.id} className="rounded border p-3 text-sm">
-            <p className="font-semibold">
-              {r.date} • Mental {r.mentalState}/10
+            <p className="font-semibold">{r.date}</p>
+            <p>
+              Tasks: {r.tasksCompleted}/5 • Power: +{r.powerGained}
             </p>
-            <p>{r.achieved}</p>
           </li>
         ))}
       </ul>
