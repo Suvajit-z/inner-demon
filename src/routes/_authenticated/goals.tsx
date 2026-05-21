@@ -1,6 +1,29 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
-import { getState, saveState } from '@/lib/app-state';
-export const Route = createFileRoute('/_authenticated/goals')({component:Goals});
-function Goals(){const [t,setT]=useState(''); const [,r]=useState(0); const s=getState(); const add=()=>{if(!t)return; s.goals.unshift({id:crypto.randomUUID(),title:t,description:'',type:'Personal',deadline:'',priority:'Medium',createdAt:new Date().toISOString(),source:'manual'});saveState(s);setT('');r(x=>x+1)}; const notion=()=>{s.notionConnected=true; s.goals.unshift({id:crypto.randomUUID(),title:'Notion synced task',description:'',type:'Study',deadline:'',priority:'High',createdAt:new Date().toISOString(),source:'notion'}); saveState(s); r(x=>x+1)};
-return <main className='p-4 pb-24'><h1 className='text-2xl text-[#C9A84C] font-bold'>Goals</h1><div className='flex gap-2 mt-3'><input className='flex-1 h-12 rounded bg-zinc-900 p-2' value={t} onChange={e=>setT(e.target.value)}/><button className='h-12 px-4 rounded bg-[#C9A84C] text-black' onClick={add}>Add</button></div><button className='mt-3 h-12 w-full rounded border border-[#C9A84C]' onClick={notion}>Sync from Notion</button><div className='mt-4 space-y-2'>{s.goals.map(g=><div key={g.id} className='rounded-xl bg-zinc-900 p-3'>{g.title} {g.source==='notion'&&'🅽'}</div>)}</div></main>}
+import { ensureTodayTasks, getState, saveState, timerFor, todayKey } from '@/lib/app-state';
+
+export const Route = createFileRoute('/_authenticated/goals')({ component: Missions });
+
+function Missions() {
+  const [_, rerender] = useState(0);
+  const s = ensureTodayTasks(getState());
+  const tasks = s.tasksByDate[todayKey()];
+
+  const toggle = (id: string) => {
+    const t = tasks.find((x) => x.id === id);
+    if (!t) return;
+    t.completed = !t.completed;
+    s.power = Math.min(100, s.power + (t.completed ? 2 : -2));
+    saveState(s);
+    rerender((x) => x + 1);
+  };
+
+  return <main className='p-4 pb-24 max-w-md mx-auto space-y-3'>
+    <h1 className='text-xl font-black tracking-wider text-[#D4AF37]'>MISSIONS</h1>
+    {tasks.map((t) => <section key={t.id} className='glass rounded-2xl p-4 pulse-red'>
+      <div className='flex items-center justify-between'><p>{t.title}</p><span className='text-xs text-zinc-400'>{Math.round(timerFor(t.category)/60)} min</span></div>
+      <div className='mt-2 h-2 rounded-full bg-zinc-800'><div className='h-2 bg-gradient-to-r from-[#8B0000] to-[#6A0DAD]' style={{width:t.completed?'100%':'35%'}}/></div>
+      <div className='mt-3 grid grid-cols-2 gap-2'><button className='h-10 rounded-xl bg-[#8B0000]'>START</button><button className='h-10 rounded-xl bg-[#D4AF37] text-black' onClick={()=>toggle(t.id)}>{t.completed?'COMPLETED':'COMPLETE'}</button></div>
+    </section>)}
+  </main>;
+}

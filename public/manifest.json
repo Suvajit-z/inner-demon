@@ -1,19 +1,13 @@
 {
-  "name": "Inner Demon",
+  "name": "⚔️ INNER DEMON — Forge Your Strongest Self",
   "short_name": "Inner Demon",
+  "description": "Cinematic RPG self-improvement operating system",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0A0A0A",
-  "theme_color": "#C9A84C",
+  "background_color": "#050505",
+  "theme_color": "#050505",
   "orientation": "portrait",
   "icons": [
-    {"src":"/icons/icon-72.png","sizes":"72x72","type":"image/png"},
-    {"src":"/icons/icon-96.png","sizes":"96x96","type":"image/png"},
-    {"src":"/icons/icon-128.png","sizes":"128x128","type":"image/png"},
-    {"src":"/icons/icon-144.png","sizes":"144x144","type":"image/png"},
-    {"src":"/icons/icon-152.png","sizes":"152x152","type":"image/png"},
-    {"src":"/icons/icon-192.png","sizes":"192x192","type":"image/png"},
-    {"src":"/icons/icon-384.png","sizes":"384x384","type":"image/png"},
-    {"src":"/icons/icon-512.png","sizes":"512x512","type":"image/png"}
+    {"src":"/favicon.ico","sizes":"64x64 32x32 24x24 16x16","type":"image/x-icon"}
   ]
 }
