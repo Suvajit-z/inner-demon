@@ -54,15 +54,19 @@ const KEY = "inner-demon-v3";
 const today = () => new Date().toISOString().slice(0, 10);
 const id = () => crypto.randomUUID();
 
-const defaultState: AppState = { email: "", name: "Warrior", power: 1, isPaid: false, isAdmin: false, form: 1, maintenanceDay: 0, evolutionHistory: [], failedPinAttempts: 0, goals: [], tasksByDate: {}, reviews: [], missedNights: 0, wrongOtpTries: 0 };
+const createDefaultState = (): AppState => ({ email: "", name: "Warrior", power: 1, isPaid: false, isAdmin: false, form: 1, maintenanceDay: 0, evolutionHistory: [], failedPinAttempts: 0, goals: [], tasksByDate: {}, reviews: [], missedNights: 0, wrongOtpTries: 0 });
 
 export const getState = (): AppState => {
+  const defaultState = createDefaultState();
   if (typeof window === "undefined") return defaultState;
   const raw = localStorage.getItem(KEY);
   if (!raw) return defaultState;
   try { return { ...defaultState, ...JSON.parse(raw) }; } catch { return defaultState; }
 };
-export const saveState = (s: AppState) => localStorage.setItem(KEY, JSON.stringify(s));
+export const saveState = (s: AppState) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(KEY, JSON.stringify(s));
+};
 
 export const generateTasks = (goals: Goal[]): DailyTask[] => {
   const pool: Omit<DailyTask,'id'|'completed'>[] = goals.map((g) => ({ title: `Complete one concrete step for ${g.title}`, category: (g.type === "Study" ? "Study" : g.type === "Workout" ? "Workout" : "Other"), source: g.source === "notion" ? "notion" : "local", deadline: g.deadline }));
