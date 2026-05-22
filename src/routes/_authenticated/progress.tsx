@@ -255,7 +255,7 @@ function ProgressPage() {
               <div key={rev.date} className="glass p-4 rounded-xl border-zinc-800 space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-heading font-bold text-zinc-500">
                   <span>DATE: {rev.date}</span>
-                  <span className="text-yellow-400">STATE: {getEmojiForMental(rev.mental_state)}</span>
+                  <span className="text-yellow-400">STATE: {getEmojiForMental(Number(rev.mental_state) || 3)}</span>
                 </div>
                 <div className="text-xs font-semibold text-zinc-300 leading-snug">
                   "{rev.day_summary}"

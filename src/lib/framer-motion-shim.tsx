@@ -1,8 +1,8 @@
 import * as React from "react";
 
-type AnyProps = React.HTMLAttributes<HTMLElement> & Record<string, unknown>;
+type AnyProps = Record<string, unknown>;
 
-function createMotionTag<K extends keyof JSX.IntrinsicElements>(tag: K) {
+function createMotionTag(tag: string) {
   return React.forwardRef<HTMLElement, AnyProps>(function MotionTag(props, ref) {
     const {
       initial,
@@ -36,6 +36,6 @@ export const motion = {
   section: createMotionTag("section")
 };
 
-export function AnimatePresence({ children }: { children: React.ReactNode }) {
+export function AnimatePresence({ children }: { children: React.ReactNode; mode?: string }) {
   return <>{children}</>;
 }

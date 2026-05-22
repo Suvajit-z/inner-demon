@@ -27,6 +27,14 @@ export interface AppState {
   apiKeyClaude: string;
   tasksByDate: Record<string, DailyTaskItem[]>;
   last_active_date: string;
+  otpCode?: string;
+  otpExpiresAt?: number;
+  pinHash?: string;
+  failedPinAttempts: number;
+  isAdmin: boolean;
+  isPaid: boolean;
+  activeSubscriber: boolean;
+  trialEndsAt?: number;
 }
 
 const KEY = "inner-demon-state-v4";
@@ -63,6 +71,10 @@ export const createDefaultState = (): AppState => ({
   apiKeyClaude: "",
   tasksByDate: {},
   last_active_date: "",
+  failedPinAttempts: 0,
+  isAdmin: false,
+  isPaid: false,
+  activeSubscriber: false,
 });
 
 export const getState = (): AppState => {
@@ -261,7 +273,7 @@ export const handleTaskToggle = (taskId: string, s: AppState): AppState => {
   if (!task) return s;
 
   task.completed = !task.completed;
-  task.completed_at = task.completed ? new Date().toISOString() : null;
+  // completed_at tracking removed (not part of DailyTaskItem schema)
 
   // Recalculate stats
   const completedToday = tasks.filter(t => t.completed).length;
