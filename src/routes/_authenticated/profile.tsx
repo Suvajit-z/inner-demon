@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
-import { getState, saveState, playSound, triggerHaptic, formNames, AppState } from "@/lib/app-state";
+import { getState, saveState, playSound, triggerHaptic, formNames, AppState, todayKey } from "@/lib/app-state";
 import { db, UserProfile, NightReview, ExtractedGoal, UploadedPDF, Stats } from "@/lib/db";
 import { 
   User, 

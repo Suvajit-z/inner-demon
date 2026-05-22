@@ -13,7 +13,7 @@ import {
   generateFallbackTasks
 } from "@/lib/app-state";
 import { DemonAvatar } from "@/components/demon-avatars";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/framer-motion-shim";
 import {
   Flame,
   Play,
