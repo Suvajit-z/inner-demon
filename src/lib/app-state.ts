@@ -273,7 +273,7 @@ export const handleTaskToggle = (taskId: string, s: AppState): AppState => {
   if (!task) return s;
 
   task.completed = !task.completed;
-  task.completed_at = task.completed ? new Date().toISOString() : null;
+  // completed_at tracking removed (not part of DailyTaskItem schema)
 
   // Recalculate stats
   const completedToday = tasks.filter(t => t.completed).length;
