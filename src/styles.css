@@ -1,35 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@600;700;800;900&display=swap');
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
 :root {
-  --bg: #050505;
-  --card: #111111;
-  --gold: #d4af37;
-  --red: #8b0000;
-  --purple: #6a0dad;
+  --bg-primary: #0A0A0A;
+  --bg-secondary: #1A1A1A;
+  --card-bg: rgba(255, 255, 255, 0.05);
+  
+  --gold: #FFD700;
+  --red: #FF4444;
+  --purple: #9333EA;
+  --green: #00FF88;
+  --orange: #FFA500;
+  
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
 }
 
 @layer base {
-  * { border-color: #2a2a2a; }
-  html, body, #root { min-height: 100%; }
+  * {
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  
+  html, body, #root {
+    min-height: 100%;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+  }
+  
   body {
-    background:
-      radial-gradient(circle at 80% 10%, rgba(106, 13, 173, 0.2), transparent 40%),
-      radial-gradient(circle at 20% 20%, rgba(139, 0, 0, 0.18), transparent 35%),
-      var(--bg);
-    color: white;
-    font-family: Inter, ui-sans-serif, system-ui;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-image:
+      radial-gradient(circle at 80% 10%, rgba(147, 51, 234, 0.12), transparent 45%),
+      radial-gradient(circle at 20% 20%, rgba(255, 68, 68, 0.1), transparent 40%),
+      radial-gradient(circle at 50% 90%, rgba(255, 215, 0, 0.08), transparent 50%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+  
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 0.05em;
   }
 }
 
-.glass { background: rgba(17,17,17,.65); backdrop-filter: blur(10px); border: 1px solid rgba(212,175,55,.2); }
-.neon-gold { box-shadow: 0 0 20px rgba(212,175,55,.25); }
-.red-aura { box-shadow: 0 0 30px rgba(139,0,0,.4); }
-.pulse-red { animation: pulseRed 2.4s ease-in-out infinite; }
-.float-ember { animation: float 8s linear infinite; opacity: .45; }
-.eye-blink { animation: blink 5s infinite; }
+/* Glassmorphism system */
+.glass {
+  background: var(--card-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
 
-@keyframes pulseRed { 0%,100% { filter: drop-shadow(0 0 2px #8b0000); } 50% { filter: drop-shadow(0 0 14px #8b0000);} }
-@keyframes float { from { transform: translateY(30px); opacity:0; } 30% { opacity:.45;} to { transform: translateY(-60vh); opacity:0; } }
-@keyframes blink { 0%, 47%, 100% { transform: scaleY(1);} 50% { transform: scaleY(.08);} }
+.glass:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Gold glow glassmorphism */
+.glass-gold {
+  background: rgba(255, 215, 0, 0.02);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 215, 0, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(255, 215, 0, 0.08);
+}
+
+.glass-gold:hover {
+  border-color: rgba(255, 215, 0, 0.35);
+  box-shadow: 0 8px 36px 0 rgba(255, 215, 0, 0.18);
+}
+
+/* Red glow glassmorphism */
+.glass-red {
+  background: rgba(255, 68, 68, 0.02);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 68, 68, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(255, 68, 68, 0.08);
+}
+
+.glass-red:hover {
+  border-color: rgba(255, 68, 68, 0.35);
+  box-shadow: 0 8px 36px 0 rgba(255, 68, 68, 0.18);
+}
+
+/* Purple glow glassmorphism */
+.glass-purple {
+  background: rgba(147, 51, 234, 0.02);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(147, 51, 234, 0.15);
+  box-shadow: 0 8px 32px 0 rgba(147, 51, 234, 0.08);
+}
+
+.glass-purple:hover {
+  border-color: rgba(147, 51, 234, 0.35);
+  box-shadow: 0 8px 36px 0 rgba(147, 51, 234, 0.18);
+}
+
+/* Premium glows */
+.glow-gold {
+  filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.55));
+}
+.glow-red {
+  filter: drop-shadow(0 0 15px rgba(255, 68, 68, 0.55));
+}
+.glow-purple {
+  filter: drop-shadow(0 0 15px rgba(147, 51, 234, 0.55));
+}
+
+/* Button & Border Rotating Gold Glow */
+.rotate-border {
+  position: relative;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(0deg, transparent, transparent, var(--gold), var(--red));
+  animation: rotateGlow 4s linear infinite;
+}
+
+@keyframes rotateGlow {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* floating embers */
+.float-ember {
+  animation: floatEmber 10s linear infinite;
+  opacity: 0;
+  pointer-events: none;
+}
+
+@keyframes floatEmber {
+  0% {
+    transform: translateY(20px) scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.6;
+  }
+  85% {
+    opacity: 0.6;
+  }
+  100% {
+    transform: translateY(-80vh) scale(1) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Screen shake for evolution */
+.screen-shake {
+  animation: shake 0.6s cubic-bezier(.36,.07,.19,.97) both;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-2px, 0, 0) rotate(-0.5deg); }
+  20%, 80% { transform: translate3d(4px, 0, 0) rotate(1deg); }
+  30%, 50%, 70% { transform: translate3d(-6px, 0, 0) rotate(-1.5deg); }
+  40%, 60% { transform: translate3d(6px, 0, 0) rotate(1.5deg); }
+}
+
+/* Scrollbar polish */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gold);
+}
+
+/* Swipe animations */
+.slide-up-enter {
+  animation: slideUpEnter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUpEnter {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Synapse fire overlay for AI analyzing screen */
+.synapse {
+  position: absolute;
+  background: radial-gradient(circle, var(--gold) 0%, transparent 70%);
+  border-radius: 50%;
+  animation: pulseSynapse 2s ease-in-out infinite;
+  opacity: 0.6;
+}
+
+@keyframes pulseSynapse {
+  0%, 100% { transform: scale(0.8); opacity: 0.4; }
+  50% { transform: scale(1.4); opacity: 0.95; }
+}
+
+/* Haptic bounce checking */
+.haptic-bounce {
+  transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.haptic-bounce:active {
+  transform: scale(0.92);
+}
