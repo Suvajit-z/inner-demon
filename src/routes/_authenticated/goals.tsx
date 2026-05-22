@@ -30,6 +30,7 @@ import { toast } from "sonner";
 async function extractTextFromPDF(blob: Blob): Promise<string> {
   try {
     const arrayBuffer = await blob.arrayBuffer();
+    const pdfjsLib = await getPdfjs();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = "";
 
