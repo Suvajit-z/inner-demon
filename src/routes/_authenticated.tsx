@@ -22,7 +22,7 @@ function Shell() {
   const [totalTasksToday, setTotalTasksToday] = useState(5);
   const [activeFormName, setActiveFormName] = useState("");
 
-  const [isOnline, setIsOnline] = useState(typeof window !== "undefined" ? navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(true);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
