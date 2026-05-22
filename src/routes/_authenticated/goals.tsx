@@ -4,8 +4,11 @@ import { getState, saveState, simulatePDFAnalysis, todayKey, generateFallbackTas
 type PdfJsModule = typeof import("pdfjs-dist");
 let _pdfjs: PdfJsModule | null = null;
 async function getPdfjs(): Promise<PdfJsModule> {
+  if (typeof window === "undefined") {
+    throw new Error("PDF parsing is only available in the browser");
+  }
   if (_pdfjs) return _pdfjs;
-  const mod = await import("pdfjs-dist");
+  const mod = await import(/* @vite-ignore */ ("pdfjs-dist"));
   mod.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.7.284/pdf.worker.min.js";
   _pdfjs = mod;
   return mod;
