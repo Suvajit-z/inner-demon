@@ -1,11 +1,14 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState, useRef } from "react";
 import { getState, saveState, simulatePDFAnalysis, todayKey, generateFallbackTasks } from "@/lib/app-state";
-import * as pdfjsLib from "pdfjs-dist";
-
-if (typeof window !== "undefined") {
-  // Use version-matched cdnjs worker path to ensure bundle independence
-  pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.7.284/pdf.worker.min.js";
+type PdfJsModule = typeof import("pdfjs-dist");
+let _pdfjs: PdfJsModule | null = null;
+async function getPdfjs(): Promise<PdfJsModule> {
+  if (_pdfjs) return _pdfjs;
+  const mod = await import("pdfjs-dist");
+  mod.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.7.284/pdf.worker.min.js";
+  _pdfjs = mod;
+  return mod;
 }
 import { db } from "@/lib/db";
 import {
@@ -27,6 +30,7 @@ import { toast } from "sonner";
 async function extractTextFromPDF(blob: Blob): Promise<string> {
   try {
     const arrayBuffer = await blob.arrayBuffer();
+    const pdfjsLib = await getPdfjs();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let fullText = "";
 

@@ -10,7 +10,6 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SignupRouteImport } from './routes/signup'
-import { Route as SetupRouteImport } from './routes/setup'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
@@ -24,11 +23,6 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 const SignupRoute = SignupRouteImport.update({
   id: '/signup',
   path: '/signup',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SetupRoute = SetupRouteImport.update({
-  id: '/setup',
-  path: '/setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -80,7 +74,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/setup': typeof SetupRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/goals': typeof AuthenticatedGoalsRoute
@@ -92,7 +85,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/setup': typeof SetupRoute
   '/signup': typeof SignupRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/goals': typeof AuthenticatedGoalsRoute
@@ -106,7 +98,6 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/login': typeof LoginRoute
   '/privacy': typeof PrivacyRoute
-  '/setup': typeof SetupRoute
   '/signup': typeof SignupRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/goals': typeof AuthenticatedGoalsRoute
@@ -120,7 +111,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacy'
-    | '/setup'
     | '/signup'
     | '/dashboard'
     | '/goals'
@@ -132,7 +122,6 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/privacy'
-    | '/setup'
     | '/signup'
     | '/dashboard'
     | '/goals'
@@ -145,7 +134,6 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/login'
     | '/privacy'
-    | '/setup'
     | '/signup'
     | '/_authenticated/dashboard'
     | '/_authenticated/goals'
@@ -159,7 +147,6 @@ export interface RootRouteChildren {
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   LoginRoute: typeof LoginRoute
   PrivacyRoute: typeof PrivacyRoute
-  SetupRoute: typeof SetupRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -170,13 +157,6 @@ declare module '@tanstack/react-router' {
       path: '/signup'
       fullPath: '/signup'
       preLoaderRoute: typeof SignupRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/setup': {
-      id: '/setup'
-      path: '/setup'
-      fullPath: '/setup'
-      preLoaderRoute: typeof SetupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -270,7 +250,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   LoginRoute: LoginRoute,
   PrivacyRoute: PrivacyRoute,
-  SetupRoute: SetupRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport
