@@ -179,7 +179,7 @@ function Shell() {
         biggest_failure: biggestFailure,
         mental_state: String(mentalState || 3),
         tomorrow_focus: tomorrowFocus,
-        created_at: new Date().toISOString()
+        
       };
 
       // Save to IndexedDB
