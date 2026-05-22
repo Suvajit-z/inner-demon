@@ -177,7 +177,7 @@ function Shell() {
         day_summary: daySummary,
         biggest_win: biggestWin,
         biggest_failure: biggestFailure,
-        mental_state: mentalState || 3,
+        mental_state: String(mentalState || 3),
         tomorrow_focus: tomorrowFocus,
         created_at: new Date().toISOString()
       };
