@@ -71,6 +71,10 @@ export const createDefaultState = (): AppState => ({
   apiKeyClaude: "",
   tasksByDate: {},
   last_active_date: "",
+  failedPinAttempts: 0,
+  isAdmin: false,
+  isPaid: false,
+  activeSubscriber: false,
 });
 
 export const getState = (): AppState => {
