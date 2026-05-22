@@ -27,6 +27,14 @@ export interface AppState {
   apiKeyClaude: string;
   tasksByDate: Record<string, DailyTaskItem[]>;
   last_active_date: string;
+  otpCode?: string;
+  otpExpiresAt?: number;
+  pinHash?: string;
+  failedPinAttempts: number;
+  isAdmin: boolean;
+  isPaid: boolean;
+  activeSubscriber: boolean;
+  trialEndsAt?: number;
 }
 
 const KEY = "inner-demon-state-v4";
